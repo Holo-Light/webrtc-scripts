@@ -189,7 +189,8 @@ TARGETS_TO_BUILD = {
                                               [ 
                                                 'webrtc',
                                                 'third_party/jsoncpp:jsoncpp',
-                                                'rtc_base:rtc_json'
+                                                'rtc_base:rtc_json',
+												'examples:webrtc_unity_plugin'
                                               ],1
                                              ),                                            
                                 'ortc'    : (
