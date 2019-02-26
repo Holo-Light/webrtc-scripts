@@ -126,6 +126,7 @@ FOLDERS_TO_LINK = [
                    {'../zsLib-eventing' : './third_party/idl/zsLib-eventing'},
                    {'../webrtc-apis/windows' : './sdk/windows'},
                    {'../webrtc-apis/idl' : './sdk/idl'},
+				   {'../remoting' : './examples/remoting'},
                   ]
 
 #List of folders and its links to create, specific for ortc
