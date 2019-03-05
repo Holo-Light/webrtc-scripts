@@ -108,3 +108,8 @@ userdef.py
 
 # Backup folder
 /Backup
+
+# Visual Studio Code generated files
+.vscode
+
+*.bak

@@ -28,6 +28,8 @@ NUGET_LIBRARIES = '/libraries/[TARGET]/[PLATFORM]/[CPU]/[CONFIGURATION]/'
 NUGET_URL = 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe'
 NATIVE_LIB_SRC = './[TARGET]/windows/solutions/Build/Output/Org.[TARGET]/[CONFIGURATION]/[CPU]/[FILE]'
 NATIVE_LIB_TARGET = 'runtimes\\win10-[CPU]\\native'
+SAMPLES_FOLDER_PATH = './common/windows/samples/'
+NUGET_EXECUTABLE_PATH = './webrtc/windows/nuget/nuget.exe'
 
 #Paths are relative to the webrtc root path
 GN_OUTPUT_PATH = './out'
@@ -124,6 +126,7 @@ FOLDERS_TO_LINK = [
                    {'../zsLib-eventing' : './third_party/idl/zsLib-eventing'},
                    {'../webrtc-apis/windows' : './sdk/windows'},
                    {'../webrtc-apis/idl' : './sdk/idl'},
+				   {'../remoting' : './examples/remoting'},
                   ]
 
 #List of folders and its links to create, specific for ortc
@@ -184,21 +187,28 @@ WINDOWS_COMPILER_OPTIONS = {
                             }
 
 #Additional libs to build for webrtc and ortc targets
+#'target_name' : Name of target to build. You can name target as your wish.
+#                e.g. peercc_server. It is dictionary key for a list
+#                of gn targets that will be built for target you define, 
+#                flag for linking obj files. (0 don't link, 1 link) and 
+#                flag for copying libs, exes and pdbs to OUTPUT folder.
+# {
+#   'target_name'  : ( [list of gn target paths], merging libs flag, copying to ouptut flag ),    
+# }
 TARGETS_TO_BUILD = {
                                 'webrtc'  : (
                                               [ 
                                                 'webrtc',
                                                 'third_party/jsoncpp:jsoncpp',
-                                                'rtc_base:rtc_json',
-                                                'examples:remoting'
-                                              ],1
+                                                'rtc_base:rtc_json'
+                                              ],1,1
                                              ),                                            
                                 'ortc'    : (
                                               [ 
                                                 'third_party/ortc:ortc',
                                                 'third_party/jsoncpp:jsoncpp',
                                                 'rtc_base:rtc_json'
-                                              ],1
+                                              ],1,1
                                             )
                               }
 

@@ -1,12 +1,15 @@
 import os
 import platform
 import sys
+import re
 import subprocess
 import traceback
 from importlib import import_module
+from _winreg import HKEY_LOCAL_MACHINE
 
 import config
 from utility import Utility
+from nugetUtility import NugetUtility
 from settings import Settings
 from logger import Logger
 import errors
@@ -72,6 +75,9 @@ class System:
     #Set utility logger
     Utility.setUp()
 
+    #Set up nuget utility
+    NugetUtility.setUp()
+
     #Remove Google's depot tools from the PATH and add local depot tool path.
     cls.__updateDepotToolsPath()
 
@@ -136,9 +142,10 @@ class System:
   @classmethod
   def checkTools(cls):
     """
-      Checks if git and perl are installed on host machine.
+      Checks if git, perl and Windows SDK tools are installed on host machine.
       :return: NO_ERROR if all tools are installed, otherwise returns error code
     """
+    ret = NO_ERROR
     #Check if Git is installed
     if not Utility.checkIfToolIsInstalled('git'):
       cls.logger.warning('git' + ' is not installed.')
@@ -149,7 +156,26 @@ class System:
       cls.logger.warning('perl' + ' is not installed.')
       #return errors.ERROR_SYSTEM_MISSING_PERL
 
-    return NO_ERROR
+    ret = cls.checkVSDebugTools()
+    
+    return ret
+
+  @classmethod
+  def checkVSDebugTools(cls):
+    """
+      Checks if VS debug tools are installed.
+      :return: ERROR_SYSTEM_MISSING_VS_DEBUG_TOOLS if debug tools are not isntalled.
+    """
+    ret = NO_ERROR
+    # Get Windows SDK Debugger path from Windows registry
+    winSdkDebugToolPath = Utility.getKeyValueFromRegistry(HKEY_LOCAL_MACHINE, r'SOFTWARE\Wow6432Node\Microsoft\Windows Kits\Installed Roots',"WindowsDebuggersRoot10")
+
+    # If path is not found in registry or path is not valid return error
+    if winSdkDebugToolPath == None or not os.path.isdir(winSdkDebugToolPath): 
+      ret = errors.ERROR_SYSTEM_MISSING_VS_DEBUG_TOOLS
+    else:
+      cls.logger.debug('Windows SDK Debug Tools path is ' + winSdkDebugToolPath)
+    return ret
 
   @classmethod
   def checkIfTargetIsSupported(cls, target):
@@ -169,6 +195,7 @@ class System:
       :param targets: list of targets to check for
       :return: True if targets are supported
     """
+    
     cls.logger.debug('Checking if specified targets are supported.')
     for target in targets:
       if not cls.checkIfTargetIsSupported(target):
@@ -236,31 +263,40 @@ class System:
       else:
         errorMessage = error_codes[error]
       
-      #If logger is not yet initialzed it cannot be use it, so just colorized message is shown
-      if cls.logger != None:
-        cls.logger.critical('Script execution has failed')
-        cls.logger.error(message)
+      try:
+        Utility.terminateSubprocess()
+        Utility.returnOriginalFile(Settings.mainBuildGnFilePath)
+      except Exception as error:
+        Logger.printColorMessage(str(error))
+
+      if error == errors.TERMINATED_BY_USER:
+        Logger.printColorMessage(error_codes[error])
       else:
-        Logger.printColorMessage('Script execution has failed')
-        Logger.printColorMessage('Error E'+ str(error) + ': ' + errorMessage)
+        #If logger is not yet initialzed it cannot be use it, so just colorized message is shown
+        if cls.logger != None:
+          cls.logger.critical('Script execution has failed')
+          cls.logger.error(errorMessage)
+        else:
+          Logger.printColorMessage('Script execution has failed')
+          Logger.printColorMessage('Error E'+ str(error) + ': ' + errorMessage)
 
-      #If showSettingsValuesOnError is set to True, print current settings values
-      if Settings.showSettingsValuesOnError:
-        print ('\n\n\n----------------------- CURRENT SETTINGS -----------------------')
-        attrs = vars(Settings)
-        print ('\n '.join('%s: %s' % item for item in attrs.items()))
-        print ('------------------- CURRENT SETTINGS END -----------------------')
+        #If showSettingsValuesOnError is set to True, print current settings values
+        if Settings.showSettingsValuesOnError:
+          print ('\n\n\n----------------------- CURRENT SETTINGS -----------------------')
+          attrs = vars(Settings)
+          print ('\n '.join('%s: %s' % item for item in attrs.items()))
+          print ('------------------- CURRENT SETTINGS END -----------------------')
 
-      if Settings.showPATHOnError:
-        print ('\n\n\n----------------------- PATH -----------------------')
-        print (os.environ['PATH'])
-        print ('------------------- PATH END -----------------------')
+        if Settings.showPATHOnError:
+          print ('\n\n\n----------------------- PATH -----------------------')
+          print (os.environ['PATH'])
+          print ('------------------- PATH END -----------------------')
 
-      #If showTraceOnError is set to True, print current trace log
-      if Settings.showTraceOnError:
-        print ('\n\n\n----------------------- TRACE -----------------------')
-        traceback.print_stack()
-        print ('----------------------- TRACE END -----------------------')
+        #If showTraceOnError is set to True, print current trace log
+        if Settings.showTraceOnError:
+          print ('\n\n\n----------------------- TRACE -----------------------')
+          traceback.print_stack()
+          print ('----------------------- TRACE END -----------------------')
 
     sys.exit(error)
 
@@ -282,6 +318,42 @@ class System:
         cls.logger.error(str(error))
         ret = errors.ERROR_SYSTEM_FAILED_DELETING_USERDEF
       
+    return ret
+
+  @classmethod
+  def downloadFromGoogle(cls, bucket, path, isDirectory = False, shouldRecurse = True):
+    """
+      Download content from the google storage buckets
+      :param bucket: the name of the google bucket to download from
+      :param path: the path to a sha1 file OR the path to a directory containing sha1 files
+      :param isDirectory: must be True is path is a file, and False if path is a directory
+      :param shouldRecurse: only used if path is a directory, True to recursively scan for sha1 files, False to not
+      :return ret: True if successfully downloaded.
+    """
+    ret = True
+
+    #TODO(bengreenier): we can and should derive isDirectory
+
+    #Temporary change working directory to local depot tools path
+    Utility.pushd(Settings.localDepotToolsPath)
+    
+    operationDetails = path + ' from bucket \'' + bucket
+    cls.logger.info('Downloading ' + operationDetails + '\'...')
+
+    #Run download
+    flag = '-d' if isDirectory else '-s'
+    modifier = '-r' if shouldRecurse else ''
+    cmd = 'python download_from_google_storage.py --bucket ' + bucket + ' ' + flag + ' ' + path + ' ' + modifier
+
+    result = Utility.runSubprocess([cmd], Settings.logLevel == 'DEBUG')
+
+    #Switch to previous working directory
+    Utility.popd()
+
+    if result != NO_ERROR:
+      ret = False
+      cls.logger.error('Failed downloading ' + operationDetails)
+    
     return ret
   #---------------------------------- Private methods --------------------------------------------
   @classmethod
@@ -343,18 +415,9 @@ class System:
     """
     ret = True
 
-    #Temporary change working directory to local depot tools path
-    Utility.pushd(Settings.localDepotToolsPath)
-    
-    cls.logger.info('Downloading build tool ' + toolName + '...')
-    #Download tool
-    cmd = 'python download_from_google_storage.py --bucket chromium-' + toolName + ' -s ' + os.path.join(Settings.localBuildToolsPath,toolName + '.exe.sha1')
-    result = Utility.runSubprocess([cmd], Settings.logLevel == 'DEBUG')
+    result = cls.downloadFromGoogle('chromium-' + toolName, os.path.join(Settings.localBuildToolsPath,toolName + '.exe.sha1'), False, False)
 
-    #Switch to previous working directory
-    Utility.popd()
-
-    if result != NO_ERROR:
+    if not result:
       ret = False
       cls.logger.error('Failed downloading ' + toolName)
     
@@ -433,3 +496,47 @@ class System:
       cls.logger.debug('Clang-cl.exe is found.')
     
     return ret
+
+  @classmethod
+  def getEnvFromBat(cls):
+    """Given a bat command, runs it and returns env vars set by it."""
+    cmd = '\"' +  Settings.vcvarsallPath + '\" '
+    cpu_arg = "amd64"
+    """ if (cpu != 'x64'):
+        # x64 is default target CPU thus any other CPU requires a target set
+        cpu_arg += '_' + cpu"""
+    cmd += cpu_arg
+    cmd += ' && set'
+    popen = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    variables, _ = popen.communicate()
+    if popen.returncode != 0:
+      raise Exception('"%s" failed with error %d' % (cmd, popen.returncode))
+      #else:
+      #parse variables
+    return variables
+
+  @classmethod
+  def logEnvIncludeAndLibPaths(cls, platform, cpu, path):
+    """
+      Print include and lib paths for build environment.
+      :param platform: Platform of interest ('win' or 'winuwp').
+      :param cpu: CPU of interest.
+      :param path: Folder path where is save environment file.
+    """
+    if os.path.exists(path):
+      if platform == 'winuwp':
+        environmentPath = os.path.join(path, 'environment.store_' + cpu)
+      else:
+        environmentPath = os.path.join(path, 'environment.' + cpu)
+      
+      if os.path.isfile(environmentPath):
+        textfile = open(environmentPath, "r")
+        filetext = textfile.read()
+        textfile.close()
+        for envVariable in Settings.logNinjaEnvironmentFileVariables:
+          regex = r'\x00' + envVariable + '=(.*)\x00'
+          includeStr = re.findall(regex,filetext)
+          cls.logger.debug('\n\n' + envVariable + ': \n' + str(includeStr))
+    else:
+      cls.logger.error('environment file is missing!')
