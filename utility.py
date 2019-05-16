@@ -5,7 +5,10 @@ import logging
 import subprocess
 import signal
 import shutil
-from _winreg import HKEY_LOCAL_MACHINE, OpenKey, QueryValueEx, CloseKey
+try:
+  from _winreg import HKEY_LOCAL_MACHINE, OpenKey, QueryValueEx, CloseKey
+except:
+  pass
 
 from logger import Logger
 from helper import convertToPlatformPath
@@ -94,6 +97,24 @@ class Utility:
     """
     newPath = os.environ['PATH'].replace(path + os.pathsep,'').replace(path,'')
     os.environ['PATH'] = newPath
+
+  @staticmethod
+  def getBranch():
+    """
+      Returns the branch name for the root SDK git repository
+      :return branch: branch name
+    """
+    branch = Utility.executeCommand('git rev-parse --abbrev-ref HEAD')
+    return branch
+    
+  @staticmethod
+  def getRepo():
+    """
+      Returns the repo url for the root SDK git repository
+      :return repo: repo url
+    """
+    repo = Utility.executeCommand('git remote get-url origin')
+    return repo
 
   @classmethod
   def makeLink(cls, source, destination):
@@ -502,6 +523,30 @@ class Utility:
       cls.logger.error(error_codes[result])
 
     return result
+  
+  @staticmethod
+  def executeCommand(commandToExecute):
+    """
+      Runs provided command line as subprocess, and returns stdout.
+      :param commandToExecute: Command to execute.
+      :param stdout: Returns stdout, if command is executes successfully.  Otherwise it returns 'error' string.
+    """
+    try:
+      process = subprocess.Popen(commandToExecute, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+      stdout, stderr = process.communicate()
+
+      if process.returncode == 0:
+        if stdout.endswith("\r\n"): return stdout[:-2]
+        if stdout.endswith("\n") or stdout.endswith("\r"): return stdout[:-1]
+      else:
+        raise Exception('Subprocess execution failed.\n' + str(stderr))
+
+    except Exception as error:
+      print("Error executing command: " + commandToExecute)
+      print(str(error))
+      return 'error'
+    return stdout
 
   @classmethod
   def terminateSubprocess(cls, process = None):
@@ -566,3 +611,19 @@ class Utility:
        cls.logger.error(str(error))
 
     return ret
+
+  @classmethod
+  def checkIfFolderContainsFiles(cls, folderPath, fileNames):
+    """
+      Checks if specified folder contains all specified files.
+      :param folderPath: Path of the folder where files will be searched
+      :param fileNames: list of the filenames to check
+      :return ret: True if all files are found, otherwise False
+    """
+    ret = True
+    for file in fileNames:
+      destinationFile =  os.path.join(folderPath, file)
+      ret = ret and os.path.isfile(destinationFile)
+
+    return ret
+    

@@ -6,8 +6,7 @@ import time
 from xml.etree import ElementTree as ET
 
 from errors import NO_ERROR, ERROR_NUGET_CREATION_MISSING_FILE, ERROR_GET_NUGET_PACKAGE_VERSIONS_FAILED,\
-ERROR_PACKAGE_VERSION_NOT_SUPPORTED, ERROR_CREATE_NUGET_FILE_FAILED,\
-ERROR_CHANGE_NUSPEC_FAILED
+ERROR_PACKAGE_VERSION_NOT_SUPPORTED, ERROR_CREATE_NUGET_FILE_FAILED, ERROR_CHANGE_NUSPEC_FAILED
 import config
 from logger import Logger,ColoredFormatter
 from settings import Settings
@@ -67,13 +66,19 @@ class CreateNuget:
             if ret == NO_ERROR:
                 ret = cls.create_versions_storage(cls.versions, target)
             if ret == NO_ERROR:
-                ret = cls.get_latest_version(versionInfo['number'], target, versionInfo['prerelease'])
+                ret = cls.get_latest_version(versionInfo['number'], target, versionInfo['format'], versionInfo['prerelease'])
         else:
             cls.version = Settings.manualNugetVersionNumber
         if ret == NO_ERROR:
             if os.path.isfile(Settings.releaseNotePath):
                 release_note = ReleaseNotes.get_note(Settings.releaseNotePath)
             ret = cls.create_nuspec(cls.version, target, release_note)
+        if ret == NO_ERROR:
+            # go to specified nuget folder
+            Utility.pushd(cls.nugetFolderPath)
+            ret = cls.add_repo(target)
+            # return to the root sdk directory
+            Utility.popd()
         if ret == NO_ERROR:
             ret = cls.create_targets(target)
         if ret == NO_ERROR:
@@ -97,8 +102,6 @@ class CreateNuget:
             ret = cls.check_and_move(target, cls.version)            
         if ret == NO_ERROR:
             cls.logger.info('NuGet package created succesfuly: ' + cls.nugetFolderPath + '/' + cls.version)
-            #Add nuget folder as nuget source in Nuget.Config
-            NugetUtility.add_nuget_local_source()
             cls.delete_used()
         end_time = time.time()
         cls.executionTime = end_time - start_time
@@ -109,11 +112,46 @@ class CreateNuget:
         return ret
 
     @classmethod
+    def add_repo(cls, target):
+        """
+        Adds a repository element to the metadata element inside .nuspec file
+        :param target: webrtc or ortc
+        :return: NO_ERROR if successfull. Otherwise returns error code
+        """
+        ret = NO_ERROR
+        branch = Utility.getBranch()
+        repo = Utility.getRepo()
+        
+        if repo.endswith('.git'):
+            repo = repo[:-len('.git')]
+
+        fullRepo = repo + "/tree/" + branch
+        
+        try:
+            nuspecName = target + '.nuspec'
+            with open(nuspecName, 'rb') as nuspec:
+                tree = ET.parse(nuspec)
+            metadata = tree.find('metadata')
+            
+            #Attribute for the repository element
+            repo_attrib = {'type': "git", 'url': fullRepo}
+            # Make a new repository element with the attributes from above
+            new_file = ET.SubElement(metadata, 'repository', attrib=repo_attrib)
+            new_file.tail = "\n\t\t"
+            cls.logger.debug("repository element added with url: " + repo_attrib['url'])
+            tree.write(nuspecName)
+        except Exception as error:
+            cls.logger.error(str(error))
+            ret = ERROR_CHANGE_NUSPEC_FAILED
+            cls.logger.error("Failed to add repo element to .nuspec file")
+        return ret
+
+    @classmethod
     def get_versions(cls, target):
         """
         Get NuGet package versions from nuget.org
         :param target: webrtc and/or ortc
-        :return versions: List of NuGet package versions
+        :return: NO_ERROR if successfull. Otherwise returns error code
         """
         ret = NO_ERROR
         # Works only if number of published versions of the nuget packet is less than 500
@@ -157,6 +195,7 @@ class CreateNuget:
         Creates a file with the NuGet package versions
         :param versions: list of NuGet package versions
         :param target: webrtc and/or ortc
+        :return: NO_ERROR if successfull. Otherwise returns error code
         """
         ret = NO_ERROR
         try:
@@ -264,13 +303,16 @@ class CreateNuget:
         return ret
 
     @classmethod
-    def get_latest_version(cls, version, target, prerelease="Default"):
+    def get_latest_version(cls, version, target, v_format, prerelease="Default"):
         """
         Determines the full version number for the selected NuGet package version
         :param version: Version of the package that is to be built
+        :param target: webrtc
+        :param v_format: format for the initial version number of the NuGet package e.g. '1.[number].0.1[prerelease]'.
         :param prerelease: By default selects version number will have the same prerelease value as the previous one
-            If the version is not prerelease, the value of prerelease parameter should be False
+            If the version is not prerelease, the value of prerelease parameter should be '' (empty string)
             If the prerelease type is different put that type in the prerelease parameter instead
+        :return: NO_ERROR if successfull. Otherwise returns error code
         """
         ret = NO_ERROR
         with open(cls.versions_file, 'r') as f:
@@ -285,13 +327,20 @@ class CreateNuget:
             format_version += str(build_no)
             if "prerelease" in this_version and prerelease is "Default":
                 format_version += '-' + str(this_version["prerelease"])
-            if prerelease is 'false' or prerelease is 'False':
-                prerelease = False
-            if prerelease is not "Default" and prerelease is not False:
+            elif prerelease is not '':
                 format_version += '-' + prerelease
             cls.version = format_version
+        # If the selected major version number has not been published, publish it's initial version.
+        elif version not in all_versions[target]:
+            new_version = v_format.replace('[number]', version)
+            if prerelease is 'Default':
+                new_version = new_version.replace('[prerelease]', '-Alpha')
+            elif prerelease is '':
+                new_version = new_version.replace('[prerelease]', '')
+            else:
+                new_version = new_version.replace('[prerelease]', '-'+prerelease)
+            cls.version = new_version
         else:
-            cls.logger.error(str(ERROR_PACKAGE_VERSION_NOT_SUPPORTED))
             cls.logger.error("Failed retreve latest version of NuGet package for target: " + target)
             ret = ERROR_PACKAGE_VERSION_NOT_SUPPORTED
         return ret
@@ -305,12 +354,15 @@ class CreateNuget:
         :param configuration: Release or Debug.
         :param cpu: target cpu.
         :param f_type: array of file types to be updated (Default ['.dll', '.pri']).
+        :return: NO_ERROR if successfull. Otherwise returns error code
         """
         ret = NO_ERROR
         try:
             # Create libraries directory if needed
             if not os.path.exists(cls.nugetFolderPath + '/libraries'):
                 os.makedirs(cls.nugetFolderPath + '/libraries')
+            #Copy license file
+            shutil.copy(config.LICENSE_PATH, cls.nugetFolderPath+'/libraries/LICENSE.txt')
             
             for ft in f_type:
                 f_name = 'Org.' + target + ft
@@ -358,6 +410,7 @@ class CreateNuget:
         :param f_name: name of the lib file that needs to be added(Default: Org.WebRtc)
         :param target_path: path for the target attribute of the file element that
             needs to be provided for all non default file types (.dll, .pri).
+        :return: NO_ERROR if successfull. Otherwise returns error code
         """
         ret = NO_ERROR
         try:
@@ -451,6 +504,7 @@ class CreateNuget:
         :param f_name: name of the lib file that needs to be added(Default: Org.WebRtc)
         :param target_path: path for the target attribute of the file element that
             needs to be provided for all non default file types (.dll, .pri).
+        :return: NO_ERROR if successfull. Otherwise returns error code
         """
         ret = NO_ERROR
         try:
@@ -574,6 +628,7 @@ class CreateNuget:
         :param version: version of the nuget package must be specified when
             copying nuspec file
         :param target: webrtc or ortc
+        :return: NO_ERROR if successfull. Otherwise returns error code
         """
         ret = NO_ERROR
         try:
@@ -606,6 +661,7 @@ class CreateNuget:
         """
         Create .targets file based on a template with default values
         :param target: webrtc or ortc
+        :return: NO_ERROR if successfull. Otherwise returns error code
         """
         ret = NO_ERROR
         try:
@@ -630,6 +686,7 @@ class CreateNuget:
         Checks if nuget package was made successfully and moves it to nuget folder
         :param target: webrtc or ortc
         :param version: Version of the created NuGet file
+        :return: NO_ERROR if successfull. Otherwise returns error code
         """
         ret = NO_ERROR
         try:

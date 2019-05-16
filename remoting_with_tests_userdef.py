@@ -3,47 +3,6 @@
 #args.gn template path
 webRTCGnArgsTemplatePath='./webrtc/windows/templates/gns/args.gn'
 
-#Path where nuget package and all of the files used to create the package are stored
-nugetFolderPath = './nugetpackages'
-nugetVersionInfo = {
-                      #Main version number of the NuGet package 
-                      'number': '71',
-                      #Use '' if not prerelease, 'Default' is based on previous version, or use some other prerelease ('Alpha', 'Beta', ...)
-                      'prerelease': 'Default',
-                      #Initial version number format
-                      'format': '1.[number].0.1[prerelease]'
-                   }
-#Imput NuGet package version number manualy, used if selected version number does not exist on nuget.org, E.g., '1.66.0.3-Alpha'
-manualNugetVersionNumber = ''
-
-#Path to a release notes file
-releaseNotePath = 'releases.txt'
-
-#Information about the sample to be updated
-updateSampleInfo = {
-                      'package' : 'default',
-                      'samples' : [
-                        {
-                          'name' : 'PeerCC',
-                          'url' : 'https://github.com/webrtc-uwp/PeerCC-Sample',
-                          'branch': 'webrtc_merge_m66'
-                        }
-                      ]
-                   }
-
-#List of NuGet packages used to manualy publish nuget packages, E.g., 'webrtc.1.66.0.3-Alpha.nupkg'
-#Packages must be placed in a folder referenced in nugetFolderPath variable
-nugetPackagesToPublish = []
-
-#API key used to publish nuget packages nuget.org
-nugetAPIKey = ''
-
-#URL for the nuget server, if 'default' nuget.org is used
-nugetServerURL = 'default'
-
-#Output path where will be stored nuget package as well as libs and pdbs
-#releaseOutputPath = '.'
-
 #Supported platforms for specific host OS 
 supportedPlatformsForHostOs = { 
                                 'windows' : ['win', 'winuwp'],
@@ -53,7 +12,7 @@ supportedPlatformsForHostOs = {
 
 #Supported cpus for specific platform
 supportedCPUsForPlatform = { 
-                              'winuwp'  : ['arm', 'x86', 'x64'],
+                              'winuwp'  : ['arm', 'arm64', 'x86', 'x64'],
                               'win'     : ['x86', 'x64'],
                               'ios'     : ['arm'],
                               'mac'     : [ 'x86', 'x64'],
@@ -66,9 +25,9 @@ targets = [ 'webrtc' ]
 #List of target cpus. Supported cpus are arm, x86 and x64
 targetCPUs = [ 'x86', 'x64' ]
 #List of target platforms. Supported cpus are win and winuwp
-targetPlatforms = [ 'winuwp' ]
+targetPlatforms = [ 'win' ]
 #List of target configurations. Supported cpus are Release and Debug
-targetConfigurations = [ 'Release' ]
+targetConfigurations = [ 'Release', 'Debug' ]
 #TODO: Implement logic to update zslib_eventing_tool.gni based on list of specified programming languages.
 targetProgrammingLanguage = [ 'cx', 'cppwinrt', 'c', 'dotnet', 'python' ]
 
@@ -80,13 +39,18 @@ targetProgrammingLanguage = [ 'cx', 'cppwinrt', 'c', 'dotnet', 'python' ]
 #'build' : Builds selected targets for choosen cpus, platforms and configurations.
 #'backup': Backup latest build.
 #'createnuget' : Creates nuget package.
+#'releasenote' : Gives user a choice on how to add a release note.
 #'publishnuget' : Publishes nuget package
 #'uploadbackup' : Creates a zipp file with pdb files and nuget package based on configuration and uploads it to onedrive
 #List of actions to perform
-actions = [ 'prepare', 'build', 'backup', 'createnuget', 'releasenotes', 'publishnuget', 'updatesample' ]
+actions = [ 'prepare', 'build' ]
 
+buildWithClang = False
 #Flag if wrapper library should be built. If it is False, it will be built only native libraries
-buildWrapper = True  
+buildWrapper = False
+
+#Flag if rtc_include_tests should be defined. If False, native tests aren't built
+includeTests = True
 
 #=========== cleanupOptions
 #'actions' : ['cleanOutput', 'cleanIdls', 'cleanUserDef','cleanPrepare'],
@@ -103,7 +67,7 @@ buildWrapper = True
 #             If ['*'] it will delete output folders for all configurations. 
 #             If ['Release'] it will delete just Release output folder
 cleanupOptions = {
-                'actions' : ['cleanOutput','cleanIdls','cleanPrepare'],
+                'actions' : ['cleanOutput'],
                 'targets' : [],
                 'cpus' : [],
                 'platforms' : [],
@@ -119,6 +83,9 @@ logFormat = '[%(levelname)-17s] - [%(name)-15s] - %(funcName)-30s - %(message)s 
 
 #Supported log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL (case sensitive)
 logLevel = 'DEBUG'
+
+#Select ninja environemnt variables whose values will be logged. Available values are 'LIB', 'PATHEXT', 'LIBPATH', 'PATH', 'SYSTEMROOT', 'INCLUDE'
+logNinjaEnvironmentFileVariables = ['INCLUDE', 'LIBPATH']
 
 #Log filename. If it is empty string, log will be shown in console. 
 #In other case, it will log to specified file in folder from where script is run.
@@ -149,3 +116,23 @@ enabledBackup = False
 libsBackupPath = './Backup'
 #Flag for overwriting current backup folder
 overwriteBackup = False
+
+#Additional targets that can be built
+#'target_name' : Name of target to build. You can name target as your wish.
+#                e.g. peercc_server. It is dictionary key for a list
+#                of gn targets that will be built for target you define, 
+#                flag for linking obj files. (0 don't link, 1 link) and 
+#                flag for copying libs, exes and pdbs to OUTPUT folder.
+# {
+#   'target_name'  : ( [list of gn target paths], merging libs flag, copying to ouptut flag ),    
+# }
+availableTargetsForBuilding = {
+                                'remoting_with_tests'  : (
+                                                      [ 
+														'webrtc',
+														'third_party/jsoncpp:jsoncpp',
+														'rtc_base:rtc_json',
+                                                        'remoting:remoting_tests'
+                                                      ],1,1
+                                                    ),    
+                              }

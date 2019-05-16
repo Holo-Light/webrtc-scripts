@@ -138,12 +138,14 @@ availableTargetsForBuilding = {
                               }
                               
 #Path where nuget package and all of the files used to create the package are stored
-nugetFolderPath = './webrtc/windows/nuget'
+nugetFolderPath = './nugetpackages'
 nugetVersionInfo = {
                       #Main version number of the NuGet package 
-                      'number': '66',
-                      #False if not prerelease, Default is based on previous version, False if not prerelease
-                      'prerelease': 'Default'
+                      'number': '71',
+                      #Use '' if not prerelease, 'Default' is based on previous version, or use some other prerelease ('Alpha', 'Beta', ...)
+                      'prerelease': 'Default',
+                      #Initial version number format
+                      'format': '1.[number].0.1[prerelease]'
                    }
 #Imput NuGet package version number manualy, used if selected version number does not exist on nuget.org, E.g., '1.66.0.3-Alpha'
 manualNugetVersionNumber = ''
@@ -177,3 +179,39 @@ nugetServerURL = 'default'
 #releaseOutputPath = '.'
 
 enableIdlImpl = False
+
+#Put list of unit tests, present in unitTest dictionary, to execute, or '*' to run all unit tests from unitTest
+unitTestsToRun = ['*']
+
+#Dictionary of all availabe unit tests, with list of tests to execute. 
+#Each unit test is associated with the list of tests. List can contain just '*' which will run all tests, for that unit test. 
+#List can contain specific tests,  that will be run for specific unit test 
+# (e.g. 'rtc_pc_unittests' : ['ExternalAuth/SrtpTransportTestWithExternalAuth.SendAndRecvPacket_SRTP_AEAD_AES_256_GCM/1', 
+# ExternalAuth/SrtpTransportTestWithExternalAuth.SendAndRecvPacket_AES_CM_128_HMAC_SHA1_80/0]). 
+#Also it can be specified to run particular test cases (e.g. 'rtc_pc_unittests' : ['ExternalAuth*','VoiceChannelSingleThreadTest*'],).
+#If some of these unit tests are not of interest, remove it from the unitTests dictionary.
+#For some specific configuration of unit tests goow practive would be to create a tamplate with tailored unitTests dictionary
+unitTests = {
+              'audio_codec_speed_tests' : ['*'],
+              'audio_decoder_unittests' : ['*'],
+              'common_audio_unittests' : ['*'],
+              'common_video_unittests' : ['*'],
+              'fake_network_unittests' : ['*'],
+              'modules_tests' : ['*'],
+              'modules_unittests' : [ '*'],
+              'ortc_unittests' : ['*'],
+              'peerconnection_unittests' : ['*'],
+              'rtc_media_unittests' : ['*'],
+              'rtc_pc_unittests' : ['*'],
+              'rtc_stats_unittests' : ['*'],
+              'rtc_unittests' : ['*'],
+              'system_wrappers_unittests' : ['*'],
+              'test_packet_masks_metrics' : ['*'],
+              'tools_unittests' : ['*'],
+              'video_capture_tests' : ['*'],
+              'video_engine_tests' : ['*'],
+              'webrtc_nonparallel_tests' : ['*'],
+              'webrtc_opus_fec_test' : ['*'],
+              'webrtc_perf_tests' : ['*'],
+            }
+            

@@ -5,13 +5,16 @@ import re
 import subprocess
 import traceback
 from importlib import import_module
-from _winreg import HKEY_LOCAL_MACHINE
+try:
+  from _winreg import HKEY_LOCAL_MACHINE
+except:
+  pass
 
 import config
 from utility import Utility
 from nugetUtility import NugetUtility
 from settings import Settings
-from logger import Logger
+from logger import Logger, ColoredFormatter
 import errors
 from errors import error_codes, NO_ERROR
 from helper import convertToPlatformPath, getCPUFamily
@@ -159,6 +162,22 @@ class System:
     ret = cls.checkVSDebugTools()
     
     return ret
+  
+  @classmethod
+  def checkIsPythonVersionSupported(cls):
+    """
+    Checks if the correct python version is being used.
+    :return: True/False based on python version.
+    """
+    python_version_number = str(sys.version_info.major) + '.' + str(sys.version_info.minor) + '.' + str(sys.version_info.micro)
+    if sys.version_info.major is not int(config.SUPPORTED_PYTHON_VERSION[0]):
+      Logger.printColorMessage('Google GN compilation requires Python version ' + 
+                                config.SUPPORTED_PYTHON_VERSION + ' but your python version is ' + 
+                                python_version_number + ' Please re-run using the proper version of Python.', 
+                                ColoredFormatter.RED)
+      return False
+    else:
+      return True
 
   @classmethod
   def checkVSDebugTools(cls):
@@ -456,9 +475,13 @@ class System:
     #Determine msvc tools and vcvarsall.bat path
     if Settings.msvsPath != '':
       Settings.msvcToolsPath = os.path.join(Settings.msvsPath,convertToPlatformPath(config.MSVC_TOOLS_PATH))
-      msvcToolsVersion = next(os.walk(Settings.msvcToolsPath))[1][0]
-      Settings.msvcToolsBinPath = os.path.join(Settings.msvcToolsPath,msvcToolsVersion,'bin','Host' + cls.hostCPU)
-      Settings.vcvarsallPath = os.path.join(Settings.msvsPath,convertToPlatformPath(config.VCVARSALL_PATH))
+      Settings.msvcToolsVersion = next(os.walk(Settings.msvcToolsPath))[1][0]
+      Settings.msvcToolsBinPath = os.path.join(Settings.msvcToolsPath,Settings.msvcToolsVersion,'bin','Host' + cls.hostCPU)
+      #Settings.vcvarsallPath = os.path.join(Settings.msvsPath,convertToPlatformPath(config.VCVARSALL_PATH))
+
+      Settings.vcvarsallPath = os.path.join(Settings.msvsPath,convertToPlatformPath(config.VC_AUXILIARY_BUILD_PATH),'vcvarsall.bat')
+      #Read Microsoft.VCToolsVersion.default.txt content to get current vc tools version
+      #Settings.vcToolsVersionPath = os.path.join(Settings.msvsPath,convertToPlatformPath(config.VC_AUXILIARY_BUILD_PATH),'Microsoft.VCToolsVersion.default.txt')
 
 
       cls.logger.info('Visual studio path is ' + Settings.msvsPath)

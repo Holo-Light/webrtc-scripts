@@ -165,6 +165,9 @@ class Settings:
       cls.nugetAPIKey = cls.inputArgs.setnugetkey
       cls.runSetNugetKey = True
     
+    if cls.inputArgs.cmdPrerelease:
+      cls.nugetVersionInfo['prerelease'] = cls.inputArgs.cmdPrerelease
+    
     # If true sets release note version by geting latest published nuget version from nuget.org
     cls.setservernoteversion = False
     if cls.inputArgs.setservernoteversion:
@@ -180,7 +183,8 @@ class Settings:
     cls.msvcToolsPath = ''
     cls.msvcToolsBinPath = ''
     cls.vcvarsallPath = ''
-
+    cls.msvcToolsVersion = ''
+    
     #Dictionary with additional configuration for each action and default values. Initially dictionary values are already set values (passed from command line, or read from userdef)
     cls.__actionOptions = {
                     'targets' : cls.targets,
@@ -206,7 +210,17 @@ class Settings:
       cls.enableIdlImpl = cls.inputArgs.idlImpl
     else:
       cls.enableIdlImpl = enableIdlImpl
-      
+
+    if cls.inputArgs.unitTests:
+      cls.unitTestsToRun = cls.inputArgs.unitTests
+    else:
+      cls.unitTestsToRun = unitTestsToRun
+
+    if '*' in cls.unitTestsToRun:
+      cls.unitTestsToRun = list(unitTests)
+
+    cls.unitTests = unitTests
+    
   @classmethod
   def getGnOutputPath(cls, path, target, platform, cpu, configuration):
     """
@@ -220,3 +234,4 @@ class Settings:
     """
     outputPath = config.GN_TARGET_OUTPUT_PATH.replace('[GN_OUT]', path).replace('[TARGET]',target).replace('[PLATFORM]',platform).replace('[CPU]',cpu).replace('[CONFIGURATION]',configuration)
     return convertToPlatformPath(outputPath)
+    
