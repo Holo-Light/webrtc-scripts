@@ -258,7 +258,7 @@ PYTHON_PACKAGES_TO_INSTALL = {
 WEBRTC_TARGET = 'webrtc'
 ADDITIONAL_TARGETS_TO_ADD = [
                               '//third_party/idl:idl',
-							  'remoting',
+							  'remoting:remoting_all',
                             ]
 
 #Currently not in use
