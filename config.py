@@ -130,7 +130,7 @@ FOLDERS_TO_LINK = [
                    {'../zsLib-eventing' : './third_party/idl/zsLib-eventing'},
                    {'../webrtc-apis/windows' : './sdk/windows'},
                    {'../webrtc-apis/idl' : './sdk/idl'},
-				   {'../remoting' : './remoting'},
+				  #  {'../remoting' : './remoting'},
                   ]
 
 #List of folders and its links to create, specific for ortc
@@ -258,7 +258,7 @@ PYTHON_PACKAGES_TO_INSTALL = {
 WEBRTC_TARGET = 'webrtc'
 ADDITIONAL_TARGETS_TO_ADD = [
                               '//third_party/idl:idl',
-							  'remoting:remoting_all',
+							  # 'remoting:remoting_all',
                             ]
 
 #Currently not in use
