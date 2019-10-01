@@ -1,12 +1,12 @@
 """
-  This file contains constant config values. 
+  This file contains constant config values.
 
 """
 
 #Filename with user default values.
 USER_DEFAULTS_FILE = 'userdef'
 
-#args.gn template path. 
+#args.gn template path.
 WEBRTC_GN_ARGS_TEMPLATE_PATH='./webrtc/windows/templates/gns/args.gn'
 
 #Supported Python version
@@ -53,8 +53,8 @@ USERDEF_DESCRIPTION_MESSAGE = 'This file is generated from defaults.py. Be free 
 #Paths are relative to root webrtc folder (webrtc/xplatform/webrtc)
 
 #List of folders to create during preparation process
-FOLDERS_TO_GENERATE =  [  
-                          './chromium/src', 
+FOLDERS_TO_GENERATE =  [
+                          './chromium/src',
                           './chromium/src/tools',
                           './chromium/src/third_party',
                           './chromium/src/third_party/winsdk_samples',
@@ -66,7 +66,7 @@ FOLDERS_TO_GENERATE =  [
                         ]
 
 #List of folders, specific to ortc, to create during preparation process
-FOLDERS_TO_GENERATE_ORTC =  [  
+FOLDERS_TO_GENERATE_ORTC =  [
                             './third_party/ortc',
                           ]
 
@@ -130,7 +130,8 @@ FOLDERS_TO_LINK = [
                    {'../zsLib-eventing' : './third_party/idl/zsLib-eventing'},
                    {'../webrtc-apis/windows' : './sdk/windows'},
                    {'../webrtc-apis/idl' : './sdk/idl'},
-				  #  {'../remoting' : './remoting'},
+                   {'../../../../../../remoting' : './remoting'},
+                  #  {'../remoting' : './remoting'},
                   ]
 
 #List of folders and its links to create, specific for ortc
@@ -195,22 +196,22 @@ WINDOWS_COMPILER_OPTIONS = {
 #Additional libs to build for webrtc and ortc targets
 #'target_name' : Name of target to build. You can name target as your wish.
 #                e.g. peercc_server. It is dictionary key for a list
-#                of gn targets that will be built for target you define, 
-#                flag for linking obj files. (0 don't link, 1 link) and 
+#                of gn targets that will be built for target you define,
+#                flag for linking obj files. (0 don't link, 1 link) and
 #                flag for copying libs, exes and pdbs to OUTPUT folder.
 # {
-#   'target_name'  : ( [list of gn target paths], merging libs flag, copying to ouptut flag ),    
+#   'target_name'  : ( [list of gn target paths], merging libs flag, copying to ouptut flag ),
 # }
 TARGETS_TO_BUILD = {
                                 'webrtc'  : (
-                                              [ 
+                                              [
                                                 'webrtc',
                                                 'third_party/jsoncpp:jsoncpp',
                                                 'rtc_base:rtc_json'
                                               ],1,1
-                                             ),                                            
+                                             ),
                                 'ortc'    : (
-                                              [ 
+                                              [
                                                 'third_party/ortc:ortc',
                                                 'third_party/jsoncpp:jsoncpp',
                                                 'rtc_base:rtc_json'
@@ -247,7 +248,7 @@ IDL_GENERATED_FILES_OUTPUT_PATH = '/sdk/windows/wrapper/generated'
 
 CLANG_CL_PATH = '/third_party/llvm-build/Release+Asserts/bin/clang-cl.exe'
 CLANG_UPDATE_SCRIPT_PATH = '/tools/clang/scripts/update.py'
-    
+
 #lastcghange.py path
 LAST_CHANGE_MODULE_PATH = '/build/util'
 
@@ -258,7 +259,7 @@ PYTHON_PACKAGES_TO_INSTALL = {
 WEBRTC_TARGET = 'webrtc'
 ADDITIONAL_TARGETS_TO_ADD = [
                               '//third_party/idl:idl',
-							  # 'remoting:remoting_all',
+                              '//remoting:remoting_all',
                             ]
 
 #Currently not in use
@@ -312,6 +313,6 @@ UNIT_TEST_SUMMARY_SEPARATOR = '========================'
 UNIT_TEST_SUMMARY_TEST_SEPARATOR = '-----------------------------\n'
 UNIT_TEST_SUMMARY_TOTAL_SEPARATOR = '***********************************\n'
 UNIT_TEST_RETRY_NUMBER_FALIED_TESTS = 5
-  
+
 ACTION_START_MESSAGE = '\n===================================== [ACTION] STARTED =====================================\n'
 ACTION_END_MESSAGE = '\n====================================== [ACTION] ENDED ======================================\n'

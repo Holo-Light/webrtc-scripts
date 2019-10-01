@@ -3,15 +3,15 @@
 #args.gn template path
 webRTCGnArgsTemplatePath='./webrtc/windows/templates/gns/args.gn'
 
-#Supported platforms for specific host OS 
-supportedPlatformsForHostOs = { 
+#Supported platforms for specific host OS
+supportedPlatformsForHostOs = {
                                 'windows' : ['win', 'winuwp'],
                                 'darwin' : ['ios', 'mac'],
                                 'linux' : ['android', 'linux']
                               }
 
 #Supported cpus for specific platform
-supportedCPUsForPlatform = { 
+supportedCPUsForPlatform = {
                               'winuwp'  : ['arm', 'arm64', 'x86', 'x64'],
                               'win'     : ['x86', 'x64'],
                               'ios'     : ['arm'],
@@ -31,7 +31,7 @@ targetConfigurations = [ 'Release', 'Debug' ]
 #TODO: Implement logic to update zslib_eventing_tool.gni based on list of specified programming languages.
 targetProgrammingLanguage = [ 'cx', 'cppwinrt', 'c', 'dotnet', 'python' ]
 
-#=========== Supported actions: clean, createuserdef, prepare, build, backup, createnuget, publishnuget, uploadbackup. 
+#=========== Supported actions: clean, createuserdef, prepare, build, backup, createnuget, publishnuget, uploadbackup.
 # In future it will be added support  updatesample.
 #'clean' : Based on cleanup options set in cleanupOptions dict, it can be choosen desired cleanup actions.
 #'createuserdef' : Deletes existing userdef.py if exists and create a new from defaults.py.
@@ -54,17 +54,17 @@ includeTests = True
 
 #=========== cleanupOptions
 #'actions' : ['cleanOutput', 'cleanIdls', 'cleanUserDef','cleanPrepare'],
-#'targets' :  If [], it will use values from targets variable above. 
-#             If ['*'] it will delete output folders for all targets. 
+#'targets' :  If [], it will use values from targets variable above.
+#             If ['*'] it will delete output folders for all targets.
 #             If ['webrtc'] it will delete just webrtc target
-#'cpus' :  If [], it will use values from targetCPUs variable above. 
-#             If ['*'] it will delete output folders for all cpus. 
+#'cpus' :  If [], it will use values from targetCPUs variable above.
+#             If ['*'] it will delete output folders for all cpus.
 #             If ['x64'] it will delete just x64 output folder
-#'platforms' :  If [], it will use values from targetPlatforms variable above. 
-#             If ['*'] it will delete output folders for all platforms. 
+#'platforms' :  If [], it will use values from targetPlatforms variable above.
+#             If ['*'] it will delete output folders for all platforms.
 #             If ['winuwp'] it will delete just winuwp output folder
-#'configurations' :  If [], it will use values from targetConfigurations variable above. 
-#             If ['*'] it will delete output folders for all configurations. 
+#'configurations' :  If [], it will use values from targetConfigurations variable above.
+#             If ['*'] it will delete output folders for all configurations.
 #             If ['Release'] it will delete just Release output folder
 cleanupOptions = {
                 'actions' : ['cleanOutput'],
@@ -73,7 +73,7 @@ cleanupOptions = {
                 'platforms' : [],
                 'configurations' : []
               }
-   
+
 """
 Supported formats: %(funcName)s - function name, %(levelname)s - log level name, %(asctime)s - time, %(message)s - log message, %(filename)s - curremt python filename, %(lineno)d - log message line no, %(name)d - module name
 For the rest of available attributes you can check on https://docs.python.org/3/library/logging.html#logrecord-attributes
@@ -87,7 +87,7 @@ logLevel = 'DEBUG'
 #Select ninja environemnt variables whose values will be logged. Available values are 'LIB', 'PATHEXT', 'LIBPATH', 'PATH', 'SYSTEMROOT', 'INCLUDE'
 logNinjaEnvironmentFileVariables = ['INCLUDE', 'LIBPATH']
 
-#Log filename. If it is empty string, log will be shown in console. 
+#Log filename. If it is empty string, log will be shown in console.
 #In other case, it will log to specified file in folder from where script is run.
 logToFile = ''
 #If true overwrite old log file, otherwise it will create a new log file with time suffix.
@@ -120,19 +120,21 @@ overwriteBackup = False
 #Additional targets that can be built
 #'target_name' : Name of target to build. You can name target as your wish.
 #                e.g. peercc_server. It is dictionary key for a list
-#                of gn targets that will be built for target you define, 
-#                flag for linking obj files. (0 don't link, 1 link) and 
+#                of gn targets that will be built for target you define,
+#                flag for linking obj files. (0 don't link, 1 link) and
 #                flag for copying libs, exes and pdbs to OUTPUT folder.
 # {
-#   'target_name'  : ( [list of gn target paths], merging libs flag, copying to ouptut flag ),    
+#   'target_name'  : ( [list of gn target paths], merging libs flag, copying to ouptut flag ),
 # }
 availableTargetsForBuilding = {
-                                'remoting_with_tests'  : (
-                                                      [ 
-														'webrtc',
-														'third_party/jsoncpp:jsoncpp',
-														'rtc_base:rtc_json',
-                                                        'remoting:remoting_tests'
-                                                      ],1,1
-                                                    ),    
+                                'remoting_with_tests' : (
+                                  [
+                                    'webrtc',
+                                    'third_party/jsoncpp:jsoncpp',
+                                    'rtc_base:rtc_json',
+                                    'remoting:remoting_tests'
+                                  ],
+                                  0, # merge libs
+                                  1 # copy to ouptut
+                                ),
                               }
