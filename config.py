@@ -130,7 +130,7 @@ FOLDERS_TO_LINK = [
                    {'../zsLib-eventing' : './third_party/idl/zsLib-eventing'},
                    {'../webrtc-apis/windows' : './sdk/windows'},
                    {'../webrtc-apis/idl' : './sdk/idl'},
-                   {'../../../../../../remoting' : './remoting'},
+                   {'../../../../../.' : './remoting'},
                   #  {'../remoting' : './remoting'},
                   ]
 
