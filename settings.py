@@ -115,13 +115,16 @@ class Settings:
     else:
       cls.buildWithClang = buildWithClang
 
+    if cls.inputArgs.cpp17:
+      cls.buildWithCpp17 = True
+    else:
+      cls.buildWithCpp17 = buildWithCpp17
+
     cls.buildWrapper = buildWrapper
 
     cls.logFormat = logFormat
     cls.logLevel = logLevel
     cls.logNinjaEnvironmentFileVariables = logNinjaEnvironmentFileVariables
-    cls.logToFile = logToFile
-    cls.overwriteLogFile = overwriteLogFile
 
     #If configurations are passed like input arguments use them, instead of one loaded from template
     if cls.inputArgs.noColor:
@@ -151,6 +154,8 @@ class Settings:
     cls.manualNugetVersionNumber = manualNugetVersionNumber
     cls.nugetPackagesToPublish = nugetPackagesToPublish
     cls.releaseNotePath = releaseNotePath
+    cls.commitKeywords = commitKeywords
+    cls.onedrivePath = onedrivePath
     cls.nugetAPIKey = nugetAPIKey
     cls.nugetServerURL = nugetServerURL
     cls.updateSampleInfo = updateSampleInfo
@@ -221,6 +226,14 @@ class Settings:
 
     cls.unitTests = unitTests
     
+    if cls.inputArgs.logToFile:
+      cls.logToFile = cls.inputArgs.logToFile
+    else:
+      cls.logToFile = logToFile
+
+    cls.logFileName = logFileName
+    cls.overwriteLogFile = overwriteLogFile
+
   @classmethod
   def getGnOutputPath(cls, path, target, platform, cpu, configuration):
     """
@@ -234,4 +247,3 @@ class Settings:
     """
     outputPath = config.GN_TARGET_OUTPUT_PATH.replace('[GN_OUT]', path).replace('[TARGET]',target).replace('[PLATFORM]',platform).replace('[CPU]',cpu).replace('[CONFIGURATION]',configuration)
     return convertToPlatformPath(outputPath)
-    
